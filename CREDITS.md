@@ -10,3 +10,5 @@
 - @types/pg — 8.20.0 / https://www.npmjs.com/package/@types/pg — MIT — used for PostgreSQL driver type definitions.
 - argon2 — 0.44.0 / https://www.npmjs.com/package/argon2 — MIT — used for password hashing.
 - @fastify/jwt — 10.2.0 / https://www.npmjs.com/package/@fastify/jwt — MIT — used for JWT authentication.
+- @fastify/cors — 11.3.0 / https://www.npmjs.com/package/@fastify/cors — MIT — used to allow the dashboard frontend to call the backend API from a browser.
+- Node.js Docker image — 22-bookworm-slim / https://hub.docker.com/_/node — MIT — used as the backend container build and runtime base image.

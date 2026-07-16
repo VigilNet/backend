@@ -29,6 +29,9 @@ CREATE TABLE threshold_configs (
 
 CREATE UNIQUE INDEX threshold_configs_version_idx ON threshold_configs (version);
 
+INSERT INTO threshold_configs (version, hr_min, hr_max, density_threshold, is_active)
+VALUES (1, 50, 130, 30, true);
+
 CREATE TABLE devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   device_id varchar(80) NOT NULL,

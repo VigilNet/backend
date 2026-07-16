@@ -36,3 +36,40 @@ POST /auth/register
 POST /auth/login
 GET /auth/me
 ```
+
+Config and device endpoints:
+
+```bash
+GET /config/thresholds/active
+PUT /admin/config/thresholds
+POST /devices/pair
+GET /devices/me
+```
+
+Alert endpoints:
+
+```bash
+POST /alerts/ingest
+GET /alerts
+GET /alerts/:id
+PATCH /alerts/:id/status
+```
+
+## Docker
+
+Build the backend image:
+
+```bash
+docker build -t vigilnet-backend .
+```
+
+Run the backend container:
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e PORT=3000 \
+  -e HOST=0.0.0.0 \
+  -e DATABASE_URL=postgres://postgres:postgres@host.docker.internal:5432/vigilnet \
+  -e JWT_SECRET=change-me \
+  vigilnet-backend
+```

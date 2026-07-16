@@ -1,6 +1,6 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
-import { HttpError } from "../../lib/http-error.js";
+import { requireAuth } from "../../lib/auth-guard.js";
 import { AuthRepository } from "./auth.repository.js";
 import { AuthService } from "./auth.service.js";
 import type { LoginInput, RegisterInput } from "./auth.types.js";
@@ -29,14 +29,6 @@ const loginBodySchema = {
 
 function createAuthService(): AuthService {
   return new AuthService(new AuthRepository(getDbContext().db));
-}
-
-async function requireAuth(request: FastifyRequest): Promise<void> {
-  try {
-    await request.jwtVerify();
-  } catch {
-    throw new HttpError(401, "Unauthorized");
-  }
 }
 
 export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {

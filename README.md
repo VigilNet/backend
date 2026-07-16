@@ -55,6 +55,12 @@ GET /alerts/:id
 PATCH /alerts/:id/status
 ```
 
+Realtime endpoints:
+
+```bash
+GET /events/alerts
+```
+
 ## Docker
 
 Build the backend image:

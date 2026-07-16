@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
 import { requireAdmin, requireAuth } from "../../lib/auth-guard.js";
+import { alertEventBus } from "../events/alert-event-bus.js";
 import { AlertRepository } from "./alert.repository.js";
 import { AlertService } from "./alert.service.js";
 import type { IngestAlertInput, ListAlertsQuery, UpdateAlertStatusInput } from "./alert.types.js";
@@ -67,6 +68,8 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
       const alertService = createAlertService();
       const alert = await alertService.ingestAlert(request.body);
 
+      alertEventBus.publish({ event: "alert:new", alert });
+
       return { alert };
     },
   );
@@ -119,6 +122,8 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
         request.body,
         request.user.sub,
       );
+
+      alertEventBus.publish({ event: "alert:updated", alert });
 
       return { alert };
     },

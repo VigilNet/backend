@@ -5,6 +5,7 @@ import { registerAlertRoutes } from "./modules/alerts/alert.route.js";
 import { registerAuthRoutes } from "./modules/auth/auth.route.js";
 import { registerConfigRoutes } from "./modules/config/config.route.js";
 import { registerDeviceRoutes } from "./modules/devices/device.route.js";
+import { registerEventRoutes } from "./modules/events/event.route.js";
 import { registerJwtPlugin } from "./plugins/jwt.js";
 import { registerHealthRoute } from "./routes/health.route.js";
 
@@ -36,6 +37,7 @@ export async function buildApp() {
   await registerConfigRoutes(app);
   await registerDeviceRoutes(app);
   await registerAlertRoutes(app);
+  await registerEventRoutes(app);
 
   return app;
 }

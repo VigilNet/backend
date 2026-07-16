@@ -13,10 +13,14 @@ export async function registerEventRoutes(app: FastifyInstance): Promise<void> {
       preHandler: requireAuth,
     },
     async (request, reply) => {
+      const origin = request.headers.origin ?? "*";
+
       reply.raw.writeHead(200, {
+        "Access-Control-Allow-Origin": origin,
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
         "Content-Type": "text/event-stream",
+        Vary: "Origin",
       });
       reply.raw.write("event: connected\ndata: {}\n\n");
 

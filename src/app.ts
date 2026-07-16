@@ -29,6 +29,7 @@ export async function buildApp() {
   });
 
   await app.register(fastifyCors, {
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "OPTIONS"],
     origin: true,
   });
   await registerJwtPlugin(app);

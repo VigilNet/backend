@@ -40,8 +40,10 @@ GET /auth/me
 Config and device endpoints:
 
 ```bash
-GET /config/thresholds/active
-PUT /admin/config/thresholds
+GET /events/resolve/:code
+POST /admin/events
+GET /config/thresholds/active?eventId=<event-id>
+PUT /admin/config/thresholds?eventId=<event-id>
 POST /devices/pair
 GET /devices/me
 ```
@@ -50,7 +52,7 @@ Alert endpoints:
 
 ```bash
 POST /alerts/ingest
-GET /alerts
+GET /alerts?eventId=<event-id>
 GET /alerts/:id
 PATCH /alerts/:id/status
 ```
@@ -58,7 +60,24 @@ PATCH /alerts/:id/status
 Realtime endpoints:
 
 ```bash
-GET /events/alerts
+GET /events/alerts?eventId=<event-id>
+```
+
+Founder and EO event code behavior:
+
+- Founder/admin logs in with email and password.
+- Founder creates events with `POST /admin/events`.
+- Each event gets a unique 6 digit code and an EO password hash.
+- EO logs in with `POST /events/login` using `{ "code": "123456", "password": "..." }`.
+- EO dashboard token is scoped to that event only.
+- Founder revokes/reactivates access with `PATCH /admin/events/:id/code`.
+- Revoked codes cannot be used by EO login, Android pairing, or Android SOS.
+
+Apply event scoping migration after the initial schema:
+
+```bash
+psql "$DATABASE_URL" -f migrations/002_event_scoping.sql
+psql "$DATABASE_URL" -f migrations/003_event_operator_login.sql
 ```
 
 ## Docker

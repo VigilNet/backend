@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { HttpError } from "../../lib/http-error.js";
 import type { AlertStatus } from "../../types/alert.js";
 import { alertStatuses, alertTypes } from "../../types/alert.js";
+import { EventRepository } from "../events/event.repository.js";
 import { AlertRepository } from "./alert.repository.js";
 import type {
   AlertResponse,
@@ -12,18 +13,23 @@ import type {
 import { toAlertResponse } from "./alert.types.js";
 
 export class AlertService {
-  constructor(private readonly alertRepository: AlertRepository) {}
+  constructor(
+    private readonly alertRepository: AlertRepository,
+    private readonly eventRepository: EventRepository,
+  ) {}
 
   async ingestAlert(input: IngestAlertInput): Promise<AlertResponse> {
     this.validateIngestInput(input);
 
-    const device = await this.alertRepository.findDeviceOwner(input.device_id.trim());
+    const eventId = await this.resolveEventId(input);
+    const device = await this.alertRepository.findDeviceOwner(eventId, input.device_id.trim());
 
     if (!device) {
       throw new HttpError(404, "Device is not paired");
     }
 
     const alert = await this.alertRepository.create({
+      eventId,
       alertCode: this.createAlertCode(),
       type: input.type,
       deviceId: device.deviceId,
@@ -58,17 +64,22 @@ export class AlertService {
     const alerts = await this.alertRepository.list({
       type: query.type,
       status: query.status,
+      eventId: query.eventId,
       limit,
     });
 
     return alerts.map(toAlertResponse);
   }
 
-  async getAlert(id: string): Promise<AlertResponse> {
+  async getAlert(id: string, allowedEventId?: string): Promise<AlertResponse> {
     const alert = await this.alertRepository.findById(id);
 
     if (!alert) {
       throw new HttpError(404, "Alert not found");
+    }
+
+    if (allowedEventId && alert.eventId !== allowedEventId) {
+      throw new HttpError(403, "Event access denied");
     }
 
     return toAlertResponse(alert);
@@ -78,6 +89,7 @@ export class AlertService {
     id: string,
     input: UpdateAlertStatusInput,
     operatorId: string,
+    allowedEventId?: string,
   ): Promise<AlertResponse> {
     if (!["ACKNOWLEDGED", "RESOLVED", "CANCELLED"].includes(input.status)) {
       throw new HttpError(400, "Alert status update is invalid");
@@ -87,13 +99,14 @@ export class AlertService {
       id,
       status: input.status,
       operatorId,
+      allowedEventId,
     });
 
     if (!updatedAlert) {
       throw new HttpError(404, "Alert not found");
     }
 
-    return this.getAlert(updatedAlert.id);
+    return this.getAlert(updatedAlert.id, allowedEventId);
   }
 
   private validateIngestInput(input: IngestAlertInput): void {
@@ -166,5 +179,33 @@ export class AlertService {
 
   private createAlertCode(): string {
     return `ALT-${Date.now().toString(36).toUpperCase()}-${randomUUID().slice(0, 8).toUpperCase()}`;
+  }
+
+  private async resolveEventId(input: IngestAlertInput): Promise<string> {
+    if (input.event_id) {
+      const event = await this.eventRepository.findById(input.event_id);
+
+      if (!event || !event.isActive) {
+        throw new HttpError(404, "Event not found");
+      }
+
+      return event.id;
+    }
+
+    if (!input.event_code) {
+      throw new HttpError(400, "Event code is required");
+    }
+
+    const event = await this.eventRepository.findByCode(input.event_code);
+
+    if (!event) {
+      throw new HttpError(404, "Event code not found");
+    }
+
+    if (!event.isActive) {
+      throw new HttpError(403, "Event code has been revoked");
+    }
+
+    return event.id;
   }
 }

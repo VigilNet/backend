@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
 import { requireAuth } from "../../lib/auth-guard.js";
+import { EventRepository } from "../events/event.repository.js";
 import { AuthRepository } from "./auth.repository.js";
 import { AuthService } from "./auth.service.js";
 import type { LoginInput, RegisterInput } from "./auth.types.js";
@@ -70,6 +71,24 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       preHandler: requireAuth,
     },
     async (request) => {
+      if (request.user.role === "EO" && request.user.eventId) {
+        const event = await new EventRepository(getDbContext().db).findById(request.user.eventId);
+
+        if (!event) {
+          throw new Error("Event token is invalid");
+        }
+
+        return {
+          user: {
+            id: event.id,
+            email: `${event.code}@event.vigilnet`,
+            fullName: event.name,
+            role: "EO",
+            createdAt: event.createdAt,
+          },
+        };
+      }
+
       const authService = createAuthService();
       const user = await authService.getById(request.user.sub);
 

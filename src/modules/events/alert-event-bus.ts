@@ -4,6 +4,7 @@ export type AlertEventName = "alert:new" | "alert:updated";
 
 export type AlertEvent = {
   event: AlertEventName;
+  eventId: string;
   alert: AlertResponse;
 };
 

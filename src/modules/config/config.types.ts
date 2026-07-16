@@ -2,7 +2,7 @@ import type { ThresholdConfig } from "../../db/schema/index.js";
 
 export type ThresholdConfigResponse = Pick<
   ThresholdConfig,
-  "id" | "version" | "hrMin" | "hrMax" | "densityThreshold" | "isActive" | "createdAt"
+  "id" | "eventId" | "version" | "hrMin" | "hrMax" | "densityThreshold" | "isActive" | "createdAt"
 >;
 
 export type UpdateThresholdConfigInput = {
@@ -16,6 +16,7 @@ export function toThresholdConfigResponse(
 ): ThresholdConfigResponse {
   return {
     id: config.id,
+    eventId: config.eventId,
     version: config.version,
     hrMin: config.hrMin,
     hrMax: config.hrMax,

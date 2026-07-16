@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { DbClient } from "../../db/client.js";
 import {
   thresholdConfigs,
@@ -9,32 +9,33 @@ import {
 export class ConfigRepository {
   constructor(private readonly db: DbClient) {}
 
-  async findActive(): Promise<ThresholdConfig | undefined> {
+  async findActive(eventId: string): Promise<ThresholdConfig | undefined> {
     const [config] = await this.db
       .select()
       .from(thresholdConfigs)
-      .where(eq(thresholdConfigs.isActive, true))
+      .where(and(eq(thresholdConfigs.eventId, eventId), eq(thresholdConfigs.isActive, true)))
       .orderBy(desc(thresholdConfigs.version))
       .limit(1);
 
     return config;
   }
 
-  async findLatest(): Promise<ThresholdConfig | undefined> {
+  async findLatest(eventId: string): Promise<ThresholdConfig | undefined> {
     const [config] = await this.db
       .select()
       .from(thresholdConfigs)
+      .where(eq(thresholdConfigs.eventId, eventId))
       .orderBy(desc(thresholdConfigs.version))
       .limit(1);
 
     return config;
   }
 
-  async deactivateAll(): Promise<void> {
+  async deactivateAll(eventId: string): Promise<void> {
     await this.db
       .update(thresholdConfigs)
       .set({ isActive: false })
-      .where(eq(thresholdConfigs.isActive, true));
+      .where(and(eq(thresholdConfigs.eventId, eventId), eq(thresholdConfigs.isActive, true)));
   }
 
   async create(input: NewThresholdConfig): Promise<ThresholdConfig> {

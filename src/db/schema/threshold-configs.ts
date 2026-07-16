@@ -6,12 +6,16 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { events } from "./events.js";
 import { users } from "./users.js";
 
 export const thresholdConfigs = pgTable(
   "threshold_configs",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
     version: integer("version").notNull(),
     hrMin: integer("hr_min").notNull(),
     hrMax: integer("hr_max").notNull(),
@@ -21,7 +25,10 @@ export const thresholdConfigs = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    versionIdx: uniqueIndex("threshold_configs_version_idx").on(table.version),
+    eventVersionIdx: uniqueIndex("threshold_configs_event_version_idx").on(
+      table.eventId,
+      table.version,
+    ),
   }),
 );
 

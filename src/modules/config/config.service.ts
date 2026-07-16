@@ -6,8 +6,8 @@ import { toThresholdConfigResponse } from "./config.types.js";
 export class ConfigService {
   constructor(private readonly configRepository: ConfigRepository) {}
 
-  async getActiveThresholdConfig(): Promise<ThresholdConfigResponse> {
-    const config = await this.configRepository.findActive();
+  async getActiveThresholdConfig(eventId: string): Promise<ThresholdConfigResponse> {
+    const config = await this.configRepository.findActive(eventId);
 
     if (!config) {
       throw new HttpError(404, "Active threshold config not found");
@@ -19,6 +19,7 @@ export class ConfigService {
   async createActiveThresholdConfig(
     input: UpdateThresholdConfigInput,
     createdBy: string,
+    eventId: string,
   ): Promise<ThresholdConfigResponse> {
     if (input.hrMin <= 0 || input.hrMax <= 0 || input.hrMin >= input.hrMax) {
       throw new HttpError(400, "HR threshold range is invalid");
@@ -28,12 +29,13 @@ export class ConfigService {
       throw new HttpError(400, "Density threshold must be greater than 0");
     }
 
-    const latest = await this.configRepository.findLatest();
+    const latest = await this.configRepository.findLatest(eventId);
     const version = (latest?.version ?? 0) + 1;
 
-    await this.configRepository.deactivateAll();
+    await this.configRepository.deactivateAll(eventId);
 
     const config = await this.configRepository.create({
+      eventId,
       version,
       hrMin: input.hrMin,
       hrMax: input.hrMax,

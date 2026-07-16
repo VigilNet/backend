@@ -35,11 +35,16 @@ export class AlertRepository {
   }
 
   async list(filters: {
+    eventId?: string;
     type?: AlertType;
     status?: AlertStatus;
     limit: number;
   }): Promise<AlertWithUser[]> {
     const conditions: SQL[] = [];
+
+    if (filters.eventId) {
+      conditions.push(eq(alerts.eventId, filters.eventId));
+    }
 
     if (filters.type) {
       conditions.push(eq(alerts.type, filters.type));
@@ -70,14 +75,18 @@ export class AlertRepository {
     }));
   }
 
-  async findDeviceOwner(deviceId: string): Promise<{ deviceId: string; userId: string } | undefined> {
+  async findDeviceOwner(
+    eventId: string,
+    deviceId: string,
+  ): Promise<{ eventId: string; deviceId: string; userId: string } | undefined> {
     const [device] = await this.db
       .select({
+        eventId: devices.eventId,
         deviceId: devices.deviceId,
         userId: devices.userId,
       })
       .from(devices)
-      .where(eq(devices.deviceId, deviceId));
+      .where(and(eq(devices.eventId, eventId), eq(devices.deviceId, deviceId)));
 
     return device;
   }
@@ -86,6 +95,7 @@ export class AlertRepository {
     id: string;
     status: AlertStatus;
     operatorId: string;
+    allowedEventId?: string;
   }): Promise<Alert | undefined> {
     const now = new Date();
     const lifecycleFields =
@@ -102,7 +112,11 @@ export class AlertRepository {
         updatedAt: now,
         ...lifecycleFields,
       })
-      .where(eq(alerts.id, input.id))
+      .where(
+        input.allowedEventId
+          ? and(eq(alerts.id, input.id), eq(alerts.eventId, input.allowedEventId))
+          : eq(alerts.id, input.id),
+      )
       .returning();
 
     return alert;

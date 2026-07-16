@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
 import { requireAuth } from "../../lib/auth-guard.js";
 import { ConfigRepository } from "../config/config.repository.js";
+import { EventRepository } from "../events/event.repository.js";
 import { DeviceRepository } from "./device.repository.js";
 import { DeviceService } from "./device.service.js";
 import type { PairDeviceInput } from "./device.types.js";
@@ -13,13 +14,31 @@ const pairDeviceBodySchema = {
   properties: {
     deviceId: { type: "string", minLength: 1, maxLength: 80 },
     deviceType: { type: "string", enum: ["APP", "WATCH"] },
+    eventCode: { type: "string", minLength: 1, maxLength: 32 },
+    eventId: { type: "string", minLength: 1 },
   },
 } as const;
+
+const devicesQuerySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    eventId: { type: "string", minLength: 1 },
+  },
+} as const;
+
+type DevicesQuery = {
+  eventId?: string;
+};
 
 function createDeviceService(): DeviceService {
   const db = getDbContext().db;
 
-  return new DeviceService(new DeviceRepository(db), new ConfigRepository(db));
+  return new DeviceService(
+    new DeviceRepository(db),
+    new ConfigRepository(db),
+    new EventRepository(db),
+  );
 }
 
 export async function registerDeviceRoutes(app: FastifyInstance): Promise<void> {
@@ -39,14 +58,19 @@ export async function registerDeviceRoutes(app: FastifyInstance): Promise<void> 
     },
   );
 
-  app.get(
+  app.get<{ Querystring: DevicesQuery }>(
     "/devices/me",
     {
       preHandler: requireAuth,
+      schema: {
+        querystring: devicesQuerySchema,
+      },
     },
     async (request) => {
       const deviceService = createDeviceService();
-      const devices = await deviceService.listDevicesForUser(request.user.sub);
+      const devices = request.query.eventId
+        ? await deviceService.listDevicesForUserAndEvent(request.user.sub, request.query.eventId)
+        : await deviceService.listDevicesForUser(request.user.sub);
 
       return { devices };
     },

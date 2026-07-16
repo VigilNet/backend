@@ -3,6 +3,8 @@ import type { AlertPayload, AlertStatus, AlertType } from "../../types/alert.js"
 
 export type IngestAlertInput = {
   device_id: string;
+  event_code?: string;
+  event_id?: string;
   type: AlertType;
   ts: number;
   lat: number;
@@ -11,6 +13,7 @@ export type IngestAlertInput = {
 };
 
 export type ListAlertsQuery = {
+  eventId?: string;
   type?: AlertType;
   status?: AlertStatus;
   limit?: string;
@@ -26,6 +29,7 @@ export type AlertWithUser = Alert & {
 
 export type AlertResponse = {
   id: string;
+  eventId: string;
   alertCode: string;
   type: AlertType;
   status: AlertStatus;
@@ -46,6 +50,7 @@ export type AlertResponse = {
 export function toAlertResponse(alert: AlertWithUser): AlertResponse {
   return {
     id: alert.id,
+    eventId: alert.eventId,
     alertCode: alert.alertCode,
     type: alert.type,
     status: alert.status,

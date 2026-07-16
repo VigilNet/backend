@@ -1,7 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
-import { requireAdmin, requireAuth } from "../../lib/auth-guard.js";
+import {
+  assertEventAccess,
+  requireDashboardAccess,
+  requireAuth,
+} from "../../lib/auth-guard.js";
 import { alertEventBus } from "../events/alert-event-bus.js";
+import { EventRepository } from "../events/event.repository.js";
 import { AlertRepository } from "./alert.repository.js";
 import { AlertService } from "./alert.service.js";
 import type { IngestAlertInput, ListAlertsQuery, UpdateAlertStatusInput } from "./alert.types.js";
@@ -12,6 +17,8 @@ const ingestAlertBodySchema = {
   additionalProperties: false,
   properties: {
     device_id: { type: "string", minLength: 1, maxLength: 80 },
+    event_code: { type: "string", minLength: 1, maxLength: 32 },
+    event_id: { type: "string", minLength: 1 },
     type: { type: "string", enum: ["BIOMETRIC_ANOMALY", "DENSITY_ANOMALY", "MANUAL_SOS"] },
     ts: { type: "number" },
     lat: { type: "number", minimum: -90, maximum: 90 },
@@ -26,6 +33,7 @@ const listAlertsQuerySchema = {
   properties: {
     type: { type: "string", enum: ["BIOMETRIC_ANOMALY", "DENSITY_ANOMALY", "MANUAL_SOS"] },
     status: { type: "string", enum: ["NEW", "ACKNOWLEDGED", "RESOLVED", "CANCELLED"] },
+    eventId: { type: "string", minLength: 1 },
     limit: { type: "string" },
   },
 } as const;
@@ -53,7 +61,9 @@ type AlertParams = {
 };
 
 function createAlertService(): AlertService {
-  return new AlertService(new AlertRepository(getDbContext().db));
+  const db = getDbContext().db;
+
+  return new AlertService(new AlertRepository(db), new EventRepository(db));
 }
 
 export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
@@ -68,7 +78,7 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
       const alertService = createAlertService();
       const alert = await alertService.ingestAlert(request.body);
 
-      alertEventBus.publish({ event: "alert:new", alert });
+      alertEventBus.publish({ event: "alert:new", eventId: alert.eventId, alert });
 
       return { alert };
     },
@@ -77,12 +87,15 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: ListAlertsQuery }>(
     "/alerts",
     {
-      preHandler: requireAuth,
+      preHandler: requireDashboardAccess,
       schema: {
         querystring: listAlertsQuerySchema,
       },
     },
     async (request) => {
+      if (request.query.eventId) {
+        assertEventAccess(request, request.query.eventId);
+      }
       const alertService = createAlertService();
       const alerts = await alertService.listAlerts(request.query);
 
@@ -93,14 +106,14 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: AlertParams }>(
     "/alerts/:id",
     {
-      preHandler: requireAuth,
+      preHandler: requireDashboardAccess,
       schema: {
         params: alertParamsSchema,
       },
     },
     async (request) => {
       const alertService = createAlertService();
-      const alert = await alertService.getAlert(request.params.id);
+      const alert = await alertService.getAlert(request.params.id, request.user.eventId);
 
       return { alert };
     },
@@ -109,7 +122,7 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
   app.patch<{ Params: AlertParams; Body: UpdateAlertStatusInput }>(
     "/alerts/:id/status",
     {
-      preHandler: requireAdmin,
+      preHandler: requireDashboardAccess,
       schema: {
         params: alertParamsSchema,
         body: updateStatusBodySchema,
@@ -120,10 +133,11 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
       const alert = await alertService.updateStatus(
         request.params.id,
         request.body,
-        request.user.sub,
+        request.user.operatorId ?? request.user.sub,
+        request.user.eventId,
       );
 
-      alertEventBus.publish({ event: "alert:updated", alert });
+      alertEventBus.publish({ event: "alert:updated", eventId: alert.eventId, alert });
 
       return { alert };
     },

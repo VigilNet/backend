@@ -18,5 +18,13 @@ export function createDbClient(databaseUrl = env.databaseUrl) {
   };
 }
 
+let dbContext: DbContext | undefined;
+
+export function getDbContext() {
+  dbContext ??= createDbClient();
+
+  return dbContext;
+}
+
 export type DbContext = ReturnType<typeof createDbClient>;
 export type DbClient = DbContext["db"];

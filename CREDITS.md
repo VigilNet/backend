@@ -8,3 +8,5 @@
 - Drizzle ORM — 0.45.2 / https://www.npmjs.com/package/drizzle-orm — Apache-2.0 — used for typed PostgreSQL schema and queries.
 - pg — 8.22.0 / https://www.npmjs.com/package/pg — MIT — used as the PostgreSQL driver.
 - @types/pg — 8.20.0 / https://www.npmjs.com/package/@types/pg — MIT — used for PostgreSQL driver type definitions.
+- argon2 — 0.44.0 / https://www.npmjs.com/package/argon2 — MIT — used for password hashing.
+- @fastify/jwt — 10.2.0 / https://www.npmjs.com/package/@fastify/jwt — MIT — used for JWT authentication.

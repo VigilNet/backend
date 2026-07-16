@@ -5,6 +5,7 @@ export type AppEnv = {
   host: string;
   port: number;
   databaseUrl: string | undefined;
+  jwtSecret: string;
 };
 
 function parsePort(value: string | undefined): number {
@@ -22,4 +23,5 @@ export const env: AppEnv = {
   host: process.env.HOST ?? "0.0.0.0",
   port: parsePort(process.env.PORT),
   databaseUrl: process.env.DATABASE_URL,
+  jwtSecret: process.env.JWT_SECRET ?? "development-only-secret",
 };

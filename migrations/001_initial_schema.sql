@@ -16,29 +16,11 @@ CREATE TABLE users (
 
 CREATE UNIQUE INDEX users_email_idx ON users (email);
 
-CREATE TABLE threshold_configs (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  version integer NOT NULL,
-  hr_min integer NOT NULL,
-  hr_max integer NOT NULL,
-  density_threshold integer NOT NULL,
-  is_active boolean NOT NULL DEFAULT false,
-  created_by uuid REFERENCES users(id) ON DELETE SET NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE UNIQUE INDEX threshold_configs_version_idx ON threshold_configs (version);
-
-INSERT INTO threshold_configs (version, hr_min, hr_max, density_threshold, is_active)
-VALUES (1, 50, 130, 30, true);
-
 CREATE TABLE devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   device_id varchar(80) NOT NULL,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   device_type device_type NOT NULL,
-  threshold_config_version integer NOT NULL,
-  threshold_snapshot jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 

@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
 import { requireAuth } from "../../lib/auth-guard.js";
-import { ConfigRepository } from "../config/config.repository.js";
 import { EventRepository } from "../events/event.repository.js";
 import { DeviceRepository } from "./device.repository.js";
 import { DeviceService } from "./device.service.js";
@@ -36,7 +35,6 @@ function createDeviceService(): DeviceService {
 
   return new DeviceService(
     new DeviceRepository(db),
-    new ConfigRepository(db),
     new EventRepository(db),
   );
 }

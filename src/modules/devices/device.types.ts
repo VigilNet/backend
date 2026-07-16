@@ -1,4 +1,4 @@
-import type { Device, ThresholdConfig } from "../../db/schema/index.js";
+import type { Device } from "../../db/schema/index.js";
 
 export type PairDeviceInput = {
   deviceId: string;
@@ -9,13 +9,7 @@ export type PairDeviceInput = {
 
 export type DeviceResponse = Pick<
   Device,
-  | "id"
-  | "eventId"
-  | "deviceId"
-  | "deviceType"
-  | "thresholdConfigVersion"
-  | "thresholdSnapshot"
-  | "createdAt"
+  "id" | "eventId" | "deviceId" | "deviceType" | "createdAt"
 >;
 
 export function toDeviceResponse(device: Device): DeviceResponse {
@@ -24,17 +18,6 @@ export function toDeviceResponse(device: Device): DeviceResponse {
     eventId: device.eventId,
     deviceId: device.deviceId,
     deviceType: device.deviceType,
-    thresholdConfigVersion: device.thresholdConfigVersion,
-    thresholdSnapshot: device.thresholdSnapshot,
     createdAt: device.createdAt,
-  };
-}
-
-export function toThresholdSnapshot(config: ThresholdConfig) {
-  return {
-    version: config.version,
-    hrMin: config.hrMin,
-    hrMax: config.hrMax,
-    densityThreshold: config.densityThreshold,
   };
 }

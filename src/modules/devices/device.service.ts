@@ -1,14 +1,12 @@
 import { HttpError } from "../../lib/http-error.js";
-import { ConfigRepository } from "../config/config.repository.js";
 import { EventRepository } from "../events/event.repository.js";
 import { DeviceRepository } from "./device.repository.js";
 import type { DeviceResponse, PairDeviceInput } from "./device.types.js";
-import { toDeviceResponse, toThresholdSnapshot } from "./device.types.js";
+import { toDeviceResponse } from "./device.types.js";
 
 export class DeviceService {
   constructor(
     private readonly deviceRepository: DeviceRepository,
-    private readonly configRepository: ConfigRepository,
     private readonly eventRepository: EventRepository,
   ) {}
 
@@ -20,13 +18,6 @@ export class DeviceService {
     }
 
     const eventId = await this.resolveEventId(input);
-    const activeConfig = await this.configRepository.findActive(eventId);
-
-    if (!activeConfig) {
-      throw new HttpError(404, "Active threshold config not found");
-    }
-
-    const thresholdSnapshot = toThresholdSnapshot(activeConfig);
     const existingDevice = await this.deviceRepository.findByEventAndDeviceId(eventId, deviceId);
 
     if (existingDevice && existingDevice.userId !== userId) {
@@ -36,8 +27,6 @@ export class DeviceService {
     if (existingDevice) {
       const updatedDevice = await this.deviceRepository.updatePairing(existingDevice.id, {
         deviceType: input.deviceType,
-        thresholdConfigVersion: activeConfig.version,
-        thresholdSnapshot,
       });
 
       return toDeviceResponse(updatedDevice);
@@ -48,8 +37,6 @@ export class DeviceService {
       deviceId,
       userId,
       deviceType: input.deviceType,
-      thresholdConfigVersion: activeConfig.version,
-      thresholdSnapshot,
     });
 
     return toDeviceResponse(device);

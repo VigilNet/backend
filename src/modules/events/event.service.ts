@@ -1,6 +1,5 @@
 import { HttpError } from "../../lib/http-error.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
-import { ConfigRepository } from "../config/config.repository.js";
 import { EventRepository } from "./event.repository.js";
 import type { CreateEventInput, EventLoginInput, EventResponse } from "./event.types.js";
 import { toEventResponse } from "./event.types.js";
@@ -8,10 +7,7 @@ import { toEventResponse } from "./event.types.js";
 const eventCodePattern = /^\d{6}$/;
 
 export class EventService {
-  constructor(
-    private readonly eventRepository: EventRepository,
-    private readonly configRepository: ConfigRepository,
-  ) {}
+  constructor(private readonly eventRepository: EventRepository) {}
 
   async resolveByCode(code: string): Promise<EventResponse> {
     const event = await this.eventRepository.findByCode(this.normalizeCode(code));
@@ -44,16 +40,6 @@ export class EventService {
       name,
       venueName,
       operatorPasswordHash: await hashPassword(input.password),
-      isActive: true,
-      createdBy,
-    });
-
-    await this.configRepository.create({
-      eventId: event.id,
-      version: 1,
-      hrMin: 50,
-      hrMax: 130,
-      densityThreshold: 30,
       isActive: true,
       createdBy,
     });

@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { getDbContext } from "../../db/client.js";
 import { assertEventAccess, requireAdmin, requireAuth, requireDashboardAccess } from "../../lib/auth-guard.js";
-import { ConfigRepository } from "../config/config.repository.js";
 import { alertEventBus, type AlertEvent } from "./alert-event-bus.js";
 import { EventRepository } from "./event.repository.js";
 import { EventService } from "./event.service.js";
@@ -83,7 +82,7 @@ type AlertEventsQuery = {
 function createEventService(): EventService {
   const db = getDbContext().db;
 
-  return new EventService(new EventRepository(db), new ConfigRepository(db));
+  return new EventService(new EventRepository(db));
 }
 
 export async function registerEventRoutes(app: FastifyInstance): Promise<void> {

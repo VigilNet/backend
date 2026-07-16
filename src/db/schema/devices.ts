@@ -1,13 +1,7 @@
-import { integer, jsonb, pgTable, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
-import type { ThresholdConfig } from "./threshold-configs.js";
+import { pgTable, timestamp, uniqueIndex, uuid, varchar } from "drizzle-orm/pg-core";
 import { deviceTypeEnum } from "./enums.js";
 import { events } from "./events.js";
 import { users } from "./users.js";
-
-export type ThresholdSnapshot = Pick<
-  ThresholdConfig,
-  "version" | "hrMin" | "hrMax" | "densityThreshold"
->;
 
 export const devices = pgTable(
   "devices",
@@ -21,8 +15,6 @@ export const devices = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     deviceType: deviceTypeEnum("device_type").notNull(),
-    thresholdConfigVersion: integer("threshold_config_version").notNull(),
-    thresholdSnapshot: jsonb("threshold_snapshot").$type<ThresholdSnapshot>().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({

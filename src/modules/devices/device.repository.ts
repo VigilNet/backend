@@ -37,7 +37,7 @@ export class DeviceRepository {
 
   async updatePairing(
     id: string,
-    input: Pick<NewDevice, "deviceType" | "thresholdConfigVersion" | "thresholdSnapshot">,
+    input: Pick<NewDevice, "deviceType">,
   ): Promise<Device> {
     const [device] = await this.db
       .update(devices)

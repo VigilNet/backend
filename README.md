@@ -37,13 +37,11 @@ POST /auth/login
 GET /auth/me
 ```
 
-Config and device endpoints:
+Event and device endpoints:
 
 ```bash
 GET /events/resolve/:code
 POST /admin/events
-GET /config/thresholds/active?eventId=<event-id>
-PUT /admin/config/thresholds?eventId=<event-id>
 POST /devices/pair
 GET /devices/me
 ```
@@ -78,6 +76,7 @@ Apply event scoping migration after the initial schema:
 ```bash
 psql "$DATABASE_URL" -f migrations/002_event_scoping.sql
 psql "$DATABASE_URL" -f migrations/003_event_operator_login.sql
+psql "$DATABASE_URL" -f migrations/004_remove_admin_config.sql
 ```
 
 ## Docker

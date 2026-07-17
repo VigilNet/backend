@@ -218,6 +218,7 @@ export async function registerEventRoutes(app: FastifyInstance): Promise<void> {
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
         "Content-Type": "text/event-stream",
+        "X-Accel-Buffering": "no",
         Vary: "Origin",
       });
       reply.raw.write("event: connected\ndata: {}\n\n");

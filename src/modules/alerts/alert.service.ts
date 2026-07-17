@@ -19,7 +19,7 @@ export class AlertService {
     private readonly eventRepository: EventRepository,
   ) {}
 
-  async ingestAlert(input: IngestAlertInput): Promise<AlertResponse> {
+  async ingestAlert(input: IngestAlertInput): Promise<{ alert: AlertResponse; created: boolean }> {
     this.validateIngestInput(input);
 
     const eventId = await this.resolveEventId(input);
@@ -27,6 +27,35 @@ export class AlertService {
 
     if (!device) {
       throw new HttpError(404, "Device is not paired");
+    }
+
+    if (input.type === "MANUAL_SOS") {
+      const existing = await this.alertRepository.findActiveByUser({
+        eventId,
+        userId: device.userId,
+        type: "MANUAL_SOS",
+      });
+
+      if (existing) {
+        // Same person, still unresolved — refresh in place (same pattern as
+        // density anomaly's periodic stream update) instead of stacking a
+        // new alert per press.
+        await this.alertRepository.refreshTrigger({
+          id: existing.id,
+          lat: input.lat,
+          lng: input.lng,
+          triggeredAt: new Date(input.ts * 1000),
+          payload: input.payload,
+        });
+
+        const refreshed = await this.alertRepository.findById(existing.id);
+
+        if (!refreshed) {
+          throw new Error("Refreshed alert could not be reloaded");
+        }
+
+        return { alert: toAlertResponse(refreshed), created: false };
+      }
     }
 
     const alert = await this.alertRepository.create({
@@ -48,7 +77,7 @@ export class AlertService {
       throw new Error("Created alert could not be loaded");
     }
 
-    return toAlertResponse(alertWithUser);
+    return { alert: toAlertResponse(alertWithUser), created: true };
   }
 
   async listAlerts(query: ListAlertsQuery): Promise<AlertResponse[]> {

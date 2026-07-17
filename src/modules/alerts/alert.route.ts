@@ -95,9 +95,13 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
     },
     async (request) => {
       const alertService = createAlertService();
-      const alert = await alertService.ingestAlert(request.body);
+      const { alert, created } = await alertService.ingestAlert(request.body);
 
-      alertEventBus.publish({ event: "alert:new", eventId: alert.eventId, alert });
+      alertEventBus.publish({
+        event: created ? "alert:new" : "alert:updated",
+        eventId: alert.eventId,
+        alert,
+      });
 
       return { alert };
     },

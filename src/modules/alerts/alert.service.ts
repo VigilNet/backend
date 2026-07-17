@@ -8,6 +8,7 @@ import type {
   AlertResponse,
   IngestAlertInput,
   ListAlertsQuery,
+  StreamAlertInput,
   UpdateAlertStatusInput,
 } from "./alert.types.js";
 import { toAlertResponse } from "./alert.types.js";
@@ -107,6 +108,47 @@ export class AlertService {
     }
 
     return this.getAlert(updatedAlert.id, allowedEventId);
+  }
+
+  async streamUpdate(id: string, input: StreamAlertInput): Promise<AlertResponse> {
+    if (!Number.isFinite(input.lat) || input.lat < -90 || input.lat > 90) {
+      throw new HttpError(400, "Latitude is invalid");
+    }
+
+    if (!Number.isFinite(input.lng) || input.lng < -180 || input.lng > 180) {
+      throw new HttpError(400, "Longitude is invalid");
+    }
+
+    const existing = await this.alertRepository.findById(id);
+
+    if (!existing) {
+      throw new HttpError(404, "Alert not found");
+    }
+
+    if (existing.deviceId !== input.device_id.trim()) {
+      throw new HttpError(403, "Device does not own this alert");
+    }
+
+    if (existing.status === "RESOLVED" || existing.status === "CANCELLED") {
+      return toAlertResponse(existing);
+    }
+
+    await this.alertRepository.streamUpdate({
+      id,
+      deviceId: existing.deviceId,
+      lat: input.lat,
+      lng: input.lng,
+      payloadPatch: input.payload ?? {},
+      resolve: input.active === false,
+    });
+
+    const refreshed = await this.alertRepository.findById(id);
+
+    if (!refreshed) {
+      throw new Error("Streamed alert could not be reloaded");
+    }
+
+    return toAlertResponse(refreshed);
   }
 
   private validateIngestInput(input: IngestAlertInput): void {

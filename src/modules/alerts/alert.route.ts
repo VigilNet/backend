@@ -9,7 +9,12 @@ import { alertEventBus } from "../events/alert-event-bus.js";
 import { EventRepository } from "../events/event.repository.js";
 import { AlertRepository } from "./alert.repository.js";
 import { AlertService } from "./alert.service.js";
-import type { IngestAlertInput, ListAlertsQuery, UpdateAlertStatusInput } from "./alert.types.js";
+import type {
+  IngestAlertInput,
+  ListAlertsQuery,
+  StreamAlertInput,
+  UpdateAlertStatusInput,
+} from "./alert.types.js";
 
 const ingestAlertBodySchema = {
   type: "object",
@@ -56,6 +61,20 @@ const updateStatusBodySchema = {
   },
 } as const;
 
+const streamAlertBodySchema = {
+  type: "object",
+  required: ["device_id", "lat", "lng", "ts"],
+  additionalProperties: false,
+  properties: {
+    device_id: { type: "string", minLength: 1, maxLength: 80 },
+    lat: { type: "number", minimum: -90, maximum: 90 },
+    lng: { type: "number", minimum: -180, maximum: 180 },
+    ts: { type: "number" },
+    payload: { type: "object" },
+    active: { type: "boolean" },
+  },
+} as const;
+
 type AlertParams = {
   id: string;
 };
@@ -79,6 +98,24 @@ export async function registerAlertRoutes(app: FastifyInstance): Promise<void> {
       const alert = await alertService.ingestAlert(request.body);
 
       alertEventBus.publish({ event: "alert:new", eventId: alert.eventId, alert });
+
+      return { alert };
+    },
+  );
+
+  app.post<{ Params: AlertParams; Body: StreamAlertInput }>(
+    "/alerts/:id/stream",
+    {
+      schema: {
+        params: alertParamsSchema,
+        body: streamAlertBodySchema,
+      },
+    },
+    async (request) => {
+      const alertService = createAlertService();
+      const alert = await alertService.streamUpdate(request.params.id, request.body);
+
+      alertEventBus.publish({ event: "alert:updated", eventId: alert.eventId, alert });
 
       return { alert };
     },

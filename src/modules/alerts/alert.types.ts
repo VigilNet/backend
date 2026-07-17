@@ -23,6 +23,15 @@ export type UpdateAlertStatusInput = {
   status: AlertStatus;
 };
 
+export type StreamAlertInput = {
+  device_id: string;
+  lat: number;
+  lng: number;
+  ts: number;
+  payload?: Record<string, unknown>;
+  active?: boolean;
+};
+
 export type AlertWithUser = Alert & {
   user: Pick<User, "id" | "fullName" | "email"> | null;
 };

@@ -1,4 +1,4 @@
-import { and, desc, eq, type SQL } from "drizzle-orm";
+import { and, desc, eq, notInArray, sql, type SQL } from "drizzle-orm";
 import type { DbClient } from "../../db/client.js";
 import { alerts, devices, users, type Alert, type NewAlert } from "../../db/schema/index.js";
 import type { AlertStatus, AlertType } from "../../types/alert.js";
@@ -116,6 +116,37 @@ export class AlertRepository {
         input.allowedEventId
           ? and(eq(alerts.id, input.id), eq(alerts.eventId, input.allowedEventId))
           : eq(alerts.id, input.id),
+      )
+      .returning();
+
+    return alert;
+  }
+
+  async streamUpdate(input: {
+    id: string;
+    deviceId: string;
+    lat: number;
+    lng: number;
+    payloadPatch: Record<string, unknown>;
+    resolve: boolean;
+  }): Promise<Alert | undefined> {
+    const now = new Date();
+
+    const [alert] = await this.db
+      .update(alerts)
+      .set({
+        lat: input.lat,
+        lng: input.lng,
+        payload: sql`${alerts.payload} || ${JSON.stringify(input.payloadPatch)}::jsonb`,
+        updatedAt: now,
+        ...(input.resolve ? { status: "RESOLVED" as const, resolvedAt: now } : {}),
+      })
+      .where(
+        and(
+          eq(alerts.id, input.id),
+          eq(alerts.deviceId, input.deviceId),
+          notInArray(alerts.status, ["RESOLVED", "CANCELLED"]),
+        ),
       )
       .returning();
 

@@ -222,13 +222,20 @@ export async function registerEventRoutes(app: FastifyInstance): Promise<void> {
       });
       reply.raw.write("event: connected\ndata: {}\n\n");
 
+      const pingInterval = setInterval(() => {
+        reply.raw.write(":\n\n"); // SSE comment to keep connection alive
+      }, 30000);
+
       const unsubscribe = alertEventBus.subscribe((event) => {
         if (event.eventId === eventId) {
           reply.raw.write(formatSseEvent(event));
         }
       });
 
-      request.raw.on("close", unsubscribe);
+      request.raw.on("close", () => {
+        clearInterval(pingInterval);
+        unsubscribe();
+      });
 
       return reply;
     },
